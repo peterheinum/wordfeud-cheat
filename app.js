@@ -4,7 +4,7 @@ const api = new wordfeudApi();
 const parser = require('fast-xml-parser');
 const fs = require('fs');
 const email = process.env.EMAIL;
-const pass = process.env.PASS;
+const pass = process.env.PASSWORD;
 const tilemap = require('./tilemap.js')
 
 
@@ -51,7 +51,7 @@ const readDSSO = () => {
 
 loginAndGetGame()
 
-function loginAndGetGame(list) {
+function loginAndGetGame() {
   api.login(email, pass, (err, result) => {
     if (err) return console.log(err);
     api.getGames(result.sessionId, (err, games) => {
@@ -162,7 +162,7 @@ async function analyzeBoard(res) {
     const e = arr[i];
     const item = lookupObj[e] == e;
     if (item) {
-      success.push(lookupObj[e].toUpperCase())
+      // success.push(lookupObj[e].toUpperCase())
     }
   }
   realCombos.forEach(e => success.push(e))
@@ -218,7 +218,7 @@ function isWordPlayable([...word], board, lettersOnBoard, wordsOnBoard, lookupOb
         return acc
       }, [])
 
-      if (allowedPlays.length) {
+      if (allowedPlays.length && allowedPlays.length == newWords.length) {
         let goodideas = []
         const translators = {
           'TB': (letter) => letter * 3,
@@ -264,7 +264,13 @@ function isWordPlayable([...word], board, lettersOnBoard, wordsOnBoard, lookupOb
           }
         }
         const sorted = goodideas.sort((a, b) => (a.points - b.points))
-        sorted.forEach(e => console.log(e.points, e.word.map(x => x.l).toString().split(',').join('')))
+        sorted.forEach(e => {
+          console.log(e.points, e.word.map(x => x.l).toString().split(',').join(''))
+          console.log(allowedPlays)
+          console.log('____________')
+          console.log('\n')
+        })
+        
       }
 
     }
@@ -324,7 +330,6 @@ const checkY = (letter, word, board) => {
     if (match) alreadyExisting.push(match)
     y++;
   }
-
 
   return alreadyExisting.length ? false : clearTiles;
 }
