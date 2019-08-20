@@ -1,0 +1,25 @@
+{
+  "name": "wfcheat",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "peter",
+  "license": "ISC",
+  "dependencies": {
+    "dawg-lookup": "^2.2.1",
+    "dotenv": "^8.0.0",
+    "fast-xml-parser": "^3.12.16",
+    "fs": "0.0.1-security",
+    "he": "^1.2.0",
+    "ramda": "^0.26.1",
+    "wordfeud-api": "^0.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "\u001b[2~https://github.com/peterheinum/wordfeud-cheat.git"
+  },
+  "description": ""
+}
