@@ -30,7 +30,7 @@ const readDSSO = () => {
         'verb',
         'pronomen'
       ]
-      
+
       const extractWord = (array, filter) => array.map(x => x.split(filter)[0].split(':'))
 
       const allWords = splitters.map(x => (flatten(filters.map(filter => extractWord(res.split(`<${x}>`), filter)))))
@@ -60,7 +60,7 @@ function loginAndGetGame() {
         e.players.some(x => x.username == 'Life on mars 27')
       );
       // console.log(games)
-      api.getGame(2603627779, result.sessionId, (err, res) => {
+      api.getGame(2616448922, result.sessionId, (err, res) => {
         if (res) {
           analyzeBoard(res)
         } else {
@@ -78,6 +78,9 @@ function loginAndGetGame() {
 async function analyzeBoard(res) {
   const list = await readDSSO();
   let rack = res.players.find(x => x.username == 'coolguy1996').rack;
+  const index = rack.indexOf('')
+  if (~index) rack[index] = '*'
+
   const hand = rack
     .toString()
     .split(',')
@@ -90,6 +93,7 @@ async function analyzeBoard(res) {
       : (temp = hand[hand.length - 1] + hand.slice(0, -1));
     handCombinations.push(temp);
   }
+
   console.log("your hand", hand)
 
   const cordinates = convertBoardArrayToObj(res.tiles)
@@ -99,10 +103,7 @@ async function analyzeBoard(res) {
 
   const allWords = removeEmptyArrays(xWords.concat(yWords));
 
-
   const wordsOnBoard = allWordsToStrings(allWords)
-
-  console.log(wordsOnBoard)
 
 
 
@@ -128,11 +129,9 @@ async function analyzeBoard(res) {
     })
   }
 
+
+
   const realCombos = unique(combos.map(x => x == lookupObj[x] ? x : null).filter(x => x))
-
-
-
-
 
 
   let tempWords = []
@@ -153,20 +152,31 @@ async function analyzeBoard(res) {
     }
   });
 
+  let success = [];
+
+  if (!tempWords.length) {
+    const emptyBoardPlays = flatten(handCombinations.map(x => combinations(x)))
+    for (let i = 0; i < emptyBoardPlays.length; i++) {
+      const e = emptyBoardPlays[i]
+      if (lookupObj[e] == e) success.push(e.toUpperCase())
+    }
+  }
+
+  success = flatten(success)
+
+
   const set = unique(bigArray)
   const arr = flatten(set.map(e => combinations(e)));
 
 
-  let success = [];
   for (let i = 0; i < arr.length; i++) {
     const e = arr[i];
     const item = lookupObj[e] == e;
     if (item) {
-      // success.push(lookupObj[e].toUpperCase())
+      success.push(lookupObj[e].toUpperCase())
     }
   }
   realCombos.forEach(e => success.push(e))
-
 
 
 
@@ -178,12 +188,121 @@ async function analyzeBoard(res) {
 
 
   positiveWords.forEach(e => console.log(e))
-  positiveWords.forEach(o => {
-    const letterOnBoard = whatLetterIsOnBoard(o.word, cordinates)
-    if (letterOnBoard) {
-      isWordPlayable(o.word, cordinates, letterOnBoard, wordsOnBoard, lookupObj, hand)
-    }
+
+  const partsOfWordsOnBoard = positiveWords.map(x => {
+    whatPartIsOnBoard(x.word, allWords)
+
   })
+
+  // positiveWords.forEach(o => {
+  //   const letterOnBoard = whatLetterIsOnBoard(o.word, cordinates)
+  //   if (letterOnBoard) {
+  //     isWordPlayable(o.word, cordinates, letterOnBoard, wordsOnBoard, lookupObj, hand)
+  //   }
+  // })
+}
+
+function whatPartIsOnBoard(word, allWords) {
+  getPlayExamples('x', word, allWords)
+}
+
+
+function getPlayExamples(xy, [...word], allWords, cordinates) {
+  const yx = xy == 'y' ? 'x' : 'y'
+
+  // const columns = unique(cordinates.map(o => o[xy])).sort((a, b) => a - b)
+  const arrToString = (arr) => arr.toString().split(',').join('')
+  const words = []
+  allWords.forEach(e => {
+    e.forEach(o => {
+      words.push({
+        [arrToString(o.map(x => x.l))]: o
+      })
+    })
+  })
+
+
+  const compare = (arr1, arr2) => {
+    const objMap = {};
+    arr1.forEach((e1) => arr2.forEach((e2) => {
+      if (e1 === e2) {
+        objMap[e1] = objMap[e1] + 1 || 1;
+      }
+    }))
+    return objMap
+  }
+
+
+  const matches = []
+  words.forEach(o => {
+    Object.keys(o).forEach(l => {
+      const spread = [...l]
+      if(Object.keys(compare(word, spread)).length > 0) matches.push({ onBoard: o }, word)
+    })
+  })
+  console.log(matches)
+
+
+  return
+  const wordsArray = []
+  columns.forEach(e => {
+    const lettersInColumn = cordinates.filter(o => o[xy] == e)
+    let index = lettersInColumn[0][yx]
+
+    //This loop will check for holes in the row and gather them
+    const startsInRow = lettersInColumn.reduce((acc, o) => {
+      if (o[yx] == index + 1) {
+        index = o[yx];
+        return acc;
+      } else {
+        index = o[yx];
+        acc.push(index)
+        return acc
+      }
+    }, [])
+
+
+    let arr = []
+
+    let lastY;
+    lettersInColumn.forEach(o => {
+      const isInLine = validateCordinate(startsInRow, o[yx], lastY)
+      if (isInLine == true) {
+        arr.push(o)
+        lastY = o[yx];
+      }
+      if (isInLine == false) {
+        console.log("nopenope big yikes")
+      }
+    });
+
+
+    startsInRow.forEach(e => {
+      const index = arr.indexOf(arr.find(x => x[yx] == e))
+      arr.splice(index, 0, 'space')
+    });
+
+    let arrayOfWords = []
+    let count = 0
+    arr.forEach(e => {
+      if (e == 'space') {
+        count++
+        arrayOfWords[count] = []
+      }
+      else if (e) arrayOfWords[count].push(e)
+    })
+
+
+    const finalArray = arrayOfWords.reduce((acc, val) => {
+      if (val.length > 1) {
+        acc.push(val)
+      }
+      return acc;
+    }, [])
+    wordsArray.push(finalArray)
+  });
+
+  return wordsArray;
 }
 
 
@@ -226,7 +345,7 @@ function isWordPlayable([...word], board, lettersOnBoard, wordsOnBoard, lookupOb
           'TO': (word) => (ev(word) * 3),
           'DO': (word) => (ev(word) * 2),
         }
-        
+
         if (y) {
           const multipliers = getMultipliers(y)
           const Do_To = multipliers.find(x => x == 'DO' || x == 'TO')
@@ -270,7 +389,7 @@ function isWordPlayable([...word], board, lettersOnBoard, wordsOnBoard, lookupOb
           console.log('____________')
           console.log('\n')
         })
-        
+
       }
 
     }
@@ -367,10 +486,9 @@ function clean(arr, key) {
 }
 
 
-function getWordsFrom(xy, cordinates, lol) {
+function getWordsFrom(xy, cordinates) {
   const yx = xy == 'y' ? 'x' : 'y'
   cordinates = cordinates.sort((a, b) => a[yx] - b[yx])
-  if (lol) console.log(cordinates)
   const columns = unique(cordinates.map(o => o[xy])).sort((a, b) => a - b)
 
   const wordsArray = []
@@ -468,9 +586,17 @@ function flatten(input) {
 }
 
 function combinations(chars) {
-  var result = [];
-  var f = function (prefix, chars) {
-    for (var i = 0; i < chars.length; i++) {
+  //infinite loop if * 
+  const index = chars.indexOf('*')
+  if (~index) {
+    let temp = [...chars]
+    temp[index] = ''
+    chars = temp.toString().split(',').join('')
+    alphabet.forEach(e => chars = chars + e)
+  }
+  const result = [];
+  let f = (prefix, chars) => {
+    for (let i = 0; i < chars.length; i++) {
       result.push(prefix + chars[i]);
       f(prefix + chars[i], chars.slice(i + 1));
     }
@@ -509,6 +635,38 @@ const wp = {
   Ä: 4,
   Ö: 4
 };
+
+const alphabet = [
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Z',
+  'Å',
+  'Ä',
+  'Ö'
+];
 
 
 
