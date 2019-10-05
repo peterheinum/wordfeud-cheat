@@ -206,7 +206,7 @@ async function analyzeBoard(res) {
   // positiveWords.log()
   const partsOfWordsOnBoard = positiveWords.map(x => x.word == 'EKA' && whatPartIsOnBoard(x.word)).clean()
   // partsOfWordsOnBoard.forEach(e => console.log('\n', e))
-  const wordsWithDirections = partsOfWordsOnBoard.map(e => filterNonLiningSuggestions(e)).clean()
+  const wordsWithDirections = partsOfWordsOnBoard.map(e => filterNonLiningSuggestions(e).clean())
   
   wordsWithDirections.forEach(e => {
     // const x = canPlayX(e)
@@ -214,20 +214,26 @@ async function analyzeBoard(res) {
   })
 }
 
-const canPlayY = ({tiles, word, inCommon, direction}) => {
-  console.log(tiles)
-  console.log(word)
-  console.log(inCommon)
-  console.log(direction)
-  console.log('______________')
+const canPlayY = (suggestions) => {
+  const possible = suggestions.map(suggestion => {
+    const { tiles, word, inCommon, direction, linesUp } = suggestion
+    
+    console.log(tiles)
+    console.log(word)
+    console.log(inCommon)
+    console.log(direction)
+
+    console.log('______________')
+    
+  })
 }
 
 const filterNonLiningSuggestions = (suggestions) => {
   return suggestions.map(item => {
     const { onBoard, inCommon, word } = item
     const { tiles } = onBoard
-    const direction = tileDirection(tiles)
 
+    const direction = tileDirection(tiles)
     const linesUp = checkIfMatchesLineUp(tiles, inCommon)
 
     if(inCommon.length > 1) {
