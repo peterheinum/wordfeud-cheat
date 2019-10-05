@@ -1,42 +1,55 @@
 require('dotenv').config();
 const wordfeudApi = require('wordfeud-api');
 const api = new wordfeudApi();
-const parser = require('fast-xml-parser');
 const fs = require('fs');
 const email = process.env.EMAIL;
 const pass = process.env.PASSWORD;
 const tilemap = require('./tilemap.js')
 
 
-
 const board = []
 const eraseBoard = () => board.splice(0, board.length)
+
+const filledBoard = []
+const erasefilledBoard = () => filledBoard.splice(0, filledBoard.length)
 
 const hand = []
 const erasehand = () => hand.splice(0, hand.length)
 
-
-Array.prototype.last = function() {
-  return this[this.length-1]
+Array.prototype.last = function () {
+  return this[this.length - 1]
 }
 
-Array.prototype.clean = function() {
+Array.prototype.clean = function () {
   return this.filter(x => x)
 }
 
-Array.prototype.log = function() {
+Array.prototype.log = function () {
   return this.forEach(e => console.log(e))
 }
 
-Array.prototype.flat = function() {
+Array.prototype.flat = function () {
   return flatten(JSON.parse(JSON.stringify(this)))
 }
 
-Array.prototype.arrToString = function() {
+Array.prototype.arrToString = function () {
   return this.toString().split(',').join('')
 }
 
-const convertBoardArrayToObj = boardStructure => boardStructure.map(([x, y, l]) => ({ x, y, l }))
+Array.prototype.unique = function () {
+  return [...new Set(this)]
+}
+
+Array.prototype.getIndexes = function (item, key) {
+  const indexes = []
+  for (let i = 0; i < this.length; i++) {
+    const equals = key ? item[key] == this[i] : item == this[i]
+    equals && indexes.push(i)
+  }
+  return indexes
+}
+
+const convertBoardArrayToObj = boardStructure => boardStructure.map(([x, y, l, custom]) => ({ x, y, l, custom }))
 const unique = (arr) => [...new Set(arr)]
 
 //Evaluate(word) unique flatten combinations functions
@@ -60,7 +73,7 @@ const readDSSO = () => {
 
       const extractWord = (array, filter) => array.map(x => x.split(filter)[0].split(':'))
 
-      const allWords = splitters.map(x => (flatten(filters.map(filter => extractWord(res.split(`<${x}>`), filter)))))
+      const allWords = splitters.map(x => (filters.map(filter => extractWord(res.split(`<${x}>`), filter)).flat()))
       const [a, b, c, d, e] = allWords
       const arr = [...a, ...b, ...c, ...d, ...e]
 
@@ -68,31 +81,23 @@ const readDSSO = () => {
         if (typeof (cur) == 'string' && cur.length > 1) acc.push(cur.toUpperCase())
         return acc
       }, [])
-      const uniq = unique(allt)
+      const uniq = allt.unique()
 
       resolve(uniq)
     })
   })
 }
 
-
-loginAndGetGame()
+analyzeBoard()
 
 function loginAndGetGame() {
   api.login(email, pass, (err, result) => {
     if (err) return console.log(err);
     api.getGames(result.sessionId, (err, games) => {
       if (err) return console.log(err);
-      const game = games.find(e =>
-        e.players.some(x => x.username == 'Life on mars 27')
-      );
-      api.getGame(2633992355, result.sessionId, (err, res) => {
+      api.getGame(2639921453, result.sessionId, (err, res) => {
         if (res) {
           analyzeBoard(res)
-        } else {
-          api.getGame((game ? game.id : 2562986584), result.sessionId, (err, ress) => {
-            console.log('fuck')
-          })
         }
       });
     });
@@ -101,27 +106,50 @@ function loginAndGetGame() {
 
 const fillBoard = () => {
   const flatBoard = board.flat()
-  const filledBoard = []
+  const array = []
   for (let i = 0; i < 15; i++) {
     for (let j = 0; j < 15; j++) {
       const existing = flatBoard.find(e => e.x == i && e.y == j)
-      existing ? filledBoard.push(existing) : filledBoard.push({x: i, y: j, isEmpty: true})
-    }    
+      existing ? array.push(existing) : array.push({ x: i, y: j, isEmpty: true })
+    }
   }
+  array.forEach(e => filledBoard.push(e))
 }
 
-async function analyzeBoard(res) {
+async function analyzeBoard() {
+  let rack = ['I', 'R', 'Å', 'T', 'M', 'A', 'A']
+  const res = {
+    tiles: [[7, 7, 'M', false],
+    [5, 8, 'T', true],
+    [7, 8, 'O', false],
+    [4, 9, 'Å', false],
+    [5, 9, 'R', false],
+    [6, 9, 'O', false],
+    [7, 9, 'R', false],
+    [8, 9, 'N', false],
+    [9, 9, 'A', false],
+    [5, 10, 'Ä', false],
+    [7, 10, 'T', false],
+    [3, 11, 'R', false],
+    [4, 11, 'I', false],
+    [5, 11, 'D', false],
+    [7, 11, 'E', false],
+    [5, 12, 'S', false],
+    [7, 12, 'L', true]]
+  }
+
   const list = await readDSSO();
-  let rack = res.players.find(x => x.username == 'coolguy1996').rack;
-  const index = rack.indexOf('')
-  if (~index) rack[index] = '*'.toString().split(',').join('');
+  // let rack = res.players.find(x => x.username == 'coolguy1996').rack;
+
+  ~rack.indexOf('') && (rack[rack.indexOf('')] = '*'.toString().split(',').join(''))
+
   let temp;
-  let handCombinations = [];
+  const handCombinations = [];
   for (let i = 0; i < rack.length; i++) {
     temp
       ? (temp = temp[temp.length - 1] + temp.slice(0, -1))
-      : (temp = rack[rack.length - 1] + rack.slice(0, -1));
-    handCombinations.push(temp);
+      : (temp = rack[rack.length - 1] + rack.slice(0, -1))
+    handCombinations.push(temp)
   }
   //Push items to hand so we can access hand() globally
   rack.forEach(e => hand.push(e))
@@ -129,38 +157,34 @@ async function analyzeBoard(res) {
 
   const cordinates = convertBoardArrayToObj(res.tiles)
 
-  const xWords = getWordsFrom('y', cordinates).clean();
-  const yWords = getWordsFrom('x', cordinates).clean();
-  
-  let allWords = removeEmptyArrays(xWords.concat(yWords));
-  allWords = allWords.map(e => flatten(e))
+  const allWords = readBoard(cordinates)
+
   allWords.forEach(e => board.push(e))
-  fillBoard()
   const wordsOnBoard = allWordsToStrings(allWords)
-  
+
   const lookupObj = list.reduce((acc, cur) => {
     if (cur) {
       acc[cur.toUpperCase()] = cur.toUpperCase();
     }
     return acc;
   }, {})
-  
-  
-  
+
+
+
   let combos = []
   //Removed this so we can test only playing things from hand until we move into harder stuff
   // for (let i = 0; i < wordsOnBoard.length; i++) {
-    //   const e = wordsOnBoard[i]
-    //   handCombinations.forEach(o => {
-      //     const combs = combinations(o)
-      //     combs.forEach(combo => {
-        //       combos.push(e + combo)
-        //       combos.push(combo + e)
-        //     });
+  //   const e = wordsOnBoard[i]
+  //   handCombinations.forEach(o => {
+  //     const combs = combinations(o)
+  //     combs.forEach(combo => {
+  //       combos.push(e + combo)
+  //       combos.push(combo + e)
+  //     });
   //   })
   // }
 
-  const realCombos = unique(combos.map(x => x == lookupObj[x] ? x : null).clean())
+  const realCombos = combos.map(x => x == lookupObj[x] ? x : null).unique().clean()
 
   const tempWords = []
   board.forEach(e => e && tempWords.push(e.map(x => x.l)))
@@ -169,62 +193,151 @@ async function analyzeBoard(res) {
   tempWords.forEach(e => {
     const o = handCombinations;
     for (let i = 0; i < e.length; i++) {
-      const letter = e[i]
-      o.forEach(x => {
-        bigArray.push(x + letter)
-      })
+      o.forEach(x => bigArray.push(x + e[i]))
     }
   });
 
   let success = [];
 
   if (!tempWords.length) {
-    const emptyBoardPlays = flatten(handCombinations.map(x => combinations(x)))
+    const emptyBoardPlays = handCombinations.map(x => combinations(x)).flat()
     for (let i = 0; i < emptyBoardPlays.length; i++) {
       const e = emptyBoardPlays[i]
       if (lookupObj[e] == e) success.push(e.toUpperCase())
     }
   }
 
-  success = flatten(success)
+  success = success.flat()
 
 
-  const set = unique(bigArray)
-  const arr = flatten(set.map(e => combinations(e)));
+  const set = bigArray.unique()
+  const arr = set.map(e => combinations(e)).flat()
 
 
   for (let i = 0; i < arr.length; i++) {
-    const e = arr[i];
-    const item = lookupObj[e] == e;
+    const e = arr[i]
+    const item = lookupObj[e] == e
     if (item) {
       success.push(lookupObj[e].toUpperCase())
     }
   }
+
   realCombos.forEach(e => success.push(e))
 
-  const positiveWords = unique(success).map(e => ({ word: e, points: ev(e) })).sort((a, b) => b.points - a.points);
+  fillBoard()
+  const positiveWords = success.unique().map(e => ({ word: e, points: ev(e) })).sort((a, b) => b.points - a.points)
   // positiveWords.log()
-  const partsOfWordsOnBoard = positiveWords.map(x => x.word == 'EKA' && whatPartIsOnBoard(x.word)).clean()
-  // partsOfWordsOnBoard.forEach(e => console.log('\n', e))
+  const partsOfWordsOnBoard = positiveWords.map(x => x.word == 'RÅMAR' && whatPartIsOnBoard(x.word)).clean()
+
   const wordsWithDirections = partsOfWordsOnBoard.map(e => filterNonLiningSuggestions(e).clean())
-  
+
   wordsWithDirections.forEach(e => {
     // const x = canPlayX(e)
     const y = canPlayY(e)
   })
 }
 
+const readLine = (direction, z, newLetter) => {
+  //send in what Y or X in Z and a direction that is opposite of X or Y that you sent in in Z
+  const words = {}
+  words['0'] = []
+  let wordIndex = 0
+  const _board = filledBoard
+  _board.push(newLetter)
+  for (let i = 0; i < 15; i++) {
+    const tile = direction == 'x'
+      ? _board.find(e => e.x == i && e.y == z)
+      : _board.find(e => e.y == i && e.x == z)
+    if (!tile || tile.isEmpty) {
+      wordIndex++
+      words[wordIndex] = []
+      continue
+    }
+    typeof (words[wordIndex]) == 'object' && !tile.isEmpty && words[wordIndex].push(tile)
+  }
+
+  const newWord = Object.keys(words)
+    .map(e => words[e])
+    .find(e => e.some(o => o.x == newLetter.x && o.y == newLetter.y))
+  return newWord
+}
+
+function readBoard(daBoard) {
+  const words = {}
+  words['0'] = []
+  let wordIndex = 0
+  const _board = daBoard
+
+  const push = (direction, z) => {
+    for (let i = 0; i < 15; i++) {
+      const tile = direction == 'x'
+        ? _board.find(e => e.x == i && e.y == z)
+        : _board.find(e => e.y == i && e.x == z)
+      if (!tile || tile.isEmpty) {
+        wordIndex++
+        words[wordIndex] = []
+        continue
+      }
+      typeof (words[wordIndex]) == 'object' && !tile.isEmpty && words[wordIndex].push(tile)
+    }
+  }
+
+  for (let i = 0; i < 15; i++) {
+    push('x', i)
+  }
+
+  for (let i = 0; i < 15; i++) {
+    push('y', i)
+  }
+
+  return Object.keys(words).map(e => words[e]).filter(x => x.length > 1)
+}
+
+
 const canPlayY = (suggestions) => {
   const possible = suggestions.map(suggestion => {
     const { tiles, word, inCommon, direction, linesUp } = suggestion
-    
-    console.log(tiles)
-    console.log(word)
-    console.log(inCommon)
-    console.log(direction)
 
-    console.log('______________')
-    
+    if (direction == 'x') {
+      const indexMatchers = word.getIndexes(inCommon[0])
+
+      const playAndNewWord = indexMatchers.map(index => {
+        let fail = false
+        const StartY = tiles[0].y - index
+        const x = tiles[0].x
+        let i = 0
+
+        const createdWords = []
+        for (let y = StartY; y < StartY + word.length; y++) {
+          const l = word[i]
+          i++
+          if (y == 15) {
+            fail = true
+            break;
+          }
+
+          const newWord = collidesRight(x, y) || collidesLeft(x, y)
+            ? readLine('x', y, { x, y, l })
+            : collidesUp(x, y) || collidesDown(x, y)
+            ? readLine('y', x, { x, y, l })
+            : false
+            
+            newWord && createdWords.push(newWord)
+            
+            console.log(y)
+            console.log(newWord)
+          // console.log('collidesUp', collidesUp(x, y))
+          // console.log('collidesDown', collidesDown(x, y))
+          // console.log('collidesLeft', collidesLeft(x, y))
+
+          console.log('collidesRight',collidesRight(x, y))
+          collidesRight(x, y) && console.log({x}, {y}, {l})
+
+
+        }
+        // return fail ? fail : 'suggestive new structure of board and new words so all new words can be SCANNED'
+      })
+    }
   })
 }
 
@@ -236,13 +349,13 @@ const filterNonLiningSuggestions = (suggestions) => {
     const direction = tileDirection(tiles)
     const linesUp = checkIfMatchesLineUp(tiles, inCommon)
 
-    if(inCommon.length > 1) {
+    if (inCommon.length > 1) {
       return linesUp ? { tiles, word, inCommon, direction, linesUp } : false
     }
 
     return { tiles, word, inCommon, direction, linesUp }
   })
-} 
+}
 
 
 
@@ -250,12 +363,13 @@ const filterNonLiningSuggestions = (suggestions) => {
 const checkIfMatchesLineUp = (tiles, inCommon) => {
   let j = tiles.indexOf(tiles.filter(e => e.l == inCommon[0]).last())
   let linesUp = true
- 
-  
+
   for (let i = 0; i < inCommon.length; i++) {
+    if (linesUp == false) break
     linesUp = tiles[j].l == inCommon[i]
     j++
   }
+
   tiles.last().l !== inCommon.last() && (linesUp = false)
   return linesUp
 }
@@ -264,31 +378,33 @@ const checkIfMatchesLineUp = (tiles, inCommon) => {
 const tileDirection = (tiles) => {
   const startx = tiles[0].x
   const lastx = tiles.last().x
-  if(startx !== lastx) return 'x'  
+  if (startx !== lastx) return 'x'
 
   const starty = tiles[0].y
   const lasty = tiles.last().y
-  if(starty !== lasty) return 'y'
+  if (starty !== lasty) return 'y'
 }
 
-const collidesUp = (x, y, board) => {
-  const xtiles = board.filter(e => e.x == x)
-  return !(y+1 == 15) && xtiles.find(e => e.y == y + 1 && e.x == x)
+
+
+const collidesUp = (x, y) => {
+  const tile = filledBoard.find(e => e.y == y - 1 && e.x == x)
+  return tile ? !tile.isEmpty : true
 }
 
-const collidesDown = (x, y, board) => {
-  const xtiles = board.filter(e => e.x == x)
-  return !(y-1 == -1) && xtiles.find(e => e.y == y - 1 && e.x == x)
+const collidesDown = (x, y) => {
+  const tile = filledBoard.find(e => e.y == y + 1 && e.x == x)
+  return tile ? !tile.isEmpty : true
 }
 
-const collidesRight = (x, y, board) => {
-  const ytiles = board.filter(e => e.y == y)
-  return !(x+1 == 15) && ytiles.find(e => e.x == x + 1 && e.y == y)
+const collidesRight = (x, y) => {
+  const tile = filledBoard.find(e => e.x == x + 1 && e.y == y)
+  return tile ? !tile.isEmpty : true
 }
 
-const collidesLeft = (x, y, board) => {
-  const ytiles = board.filter(e => e.y == y)
-  return !(x-1 == -1) && ytiles.find(e => e.x == x - 1 && e.y == y)
+const collidesLeft = (x, y) => {
+  const tile = filledBoard.find(e => e.x == x - 1 && e.y == y)
+  return tile ? !tile.isEmpty : true
 }
 
 
@@ -296,14 +412,13 @@ const collidesLeft = (x, y, board) => {
 
 
 const whatPartIsOnBoard = ([...word]) => {
-  const words = board.filter(x => !x.isEmpty).map(e => ({ word: e.map(x => x.l).arrToString(), tiles: e }) )
+  const words = board.filter(x => !x.isEmpty).map(e => ({ word: e.map(x => x.l).arrToString(), tiles: e }))
 
   const compare = (a, b) => a.filter(e => b.includes(e))
-
   const matches = []
   words.forEach(o => {
     const spread = [...o.word]
-    const inCommon = compare(word, spread)
+    const inCommon = compare(spread, word)
     inCommon.length > 0 && matches.push({ onBoard: o, word, inCommon })
   })
 
@@ -315,7 +430,7 @@ const whatPartIsOnBoard = ([...word]) => {
 
 
 const allWordsToStrings = (allWords) => {
-  const wordArray = allWords.map(o => flatten(o).map(o => o.l))
+  const wordArray = allWords.map(o => o.flat().map(o => o.l))
   return wordArray.reduce((acc, cur) => {
     const string = cur.toString().split(',').join('')
     acc.push(string)
@@ -342,7 +457,7 @@ function isWordPlayable([...word], board, lettersOnBoard, wordsOnBoard, lookupOb
         !!lookupObj[cur] && acc.push(cur)
         return acc
       }, [])
-      
+
       if (allowedPlays.length && allowedPlays.length == newWords.length) {
         let goodideas = []
         const translators = {
