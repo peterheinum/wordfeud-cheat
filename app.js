@@ -170,7 +170,6 @@ async function analyzeBoard() {
   }, {})
 
 
-
   let combos = []
   //Removed this so we can test only playing things from hand until we move into harder stuff
   // for (let i = 0; i < wordsOnBoard.length; i++) {
@@ -243,7 +242,7 @@ const readLine = (direction, z, newLetter) => {
   words['0'] = []
   let wordIndex = 0
   const _board = filledBoard
-  _board.push(newLetter)
+  _board.splice(_board.findIndex(e => e.y == newLetter.y && e.x == newLetter.x), 1, newLetter)
   for (let i = 0; i < 15; i++) {
     const tile = direction == 'x'
       ? _board.find(e => e.x == i && e.y == z)
@@ -256,6 +255,8 @@ const readLine = (direction, z, newLetter) => {
     typeof (words[wordIndex]) == 'object' && !tile.isEmpty && words[wordIndex].push(tile)
   }
 
+  // Object.keys(words)
+  //   .map(e => words[e]).log()
   const newWord = Object.keys(words)
     .map(e => words[e])
     .find(e => e.some(o => o.x == newLetter.x && o.y == newLetter.y))
@@ -297,46 +298,48 @@ function readBoard(daBoard) {
 const canPlayY = (suggestions) => {
   const possible = suggestions.map(suggestion => {
     const { tiles, word, inCommon, direction, linesUp } = suggestion
-
     if (direction == 'x') {
       const indexMatchers = word.getIndexes(inCommon[0])
 
       const playAndNewWord = indexMatchers.map(index => {
-        let fail = false
         const StartY = tiles[0].y - index
         const x = tiles[0].x
         let i = 0
 
-        const createdWords = []
+        const newWords = []
+        const move = []
+        const badMove = () => move.splice(0, move.length) && newWords.splice(0, newWords.length)
+
         for (let y = StartY; y < StartY + word.length; y++) {
           const l = word[i]
           i++
+          
           if (y == 15) {
-            fail = true
-            break;
+            badMove()
+            break
           }
 
-          const newWord = collidesRight(x, y) || collidesLeft(x, y)
-            ? readLine('x', y, { x, y, l })
-            : collidesUp(x, y) || collidesDown(x, y)
-            ? readLine('y', x, { x, y, l })
-            : false
-            
-            newWord && createdWords.push(newWord)
-            
-            console.log(y)
-            console.log(newWord)
+          const newWord = y !== StartY && collidesRight(x, y) || collidesLeft(x, y) ? readLine('x', y, { x, y, l }) : false
+          const crashY = y !== StartY && collidesUp(x, y) || collidesDown(x, y) ? readLine('y', y, { x, y, l }) : false
+          if(crashY) {
+            badMove()
+            break
+          }
+
+          newWord && newWords.push(newWord)
+          move.push({ y, x, l })
+
           // console.log('collidesUp', collidesUp(x, y))
           // console.log('collidesDown', collidesDown(x, y))
           // console.log('collidesLeft', collidesLeft(x, y))
-
-          console.log('collidesRight',collidesRight(x, y))
-          collidesRight(x, y) && console.log({x}, {y}, {l})
-
-
         }
-        // return fail ? fail : 'suggestive new structure of board and new words so all new words can be SCANNED'
-      })
+        
+        return { move, newWords }
+      }).filter(e => e.move.length)
+
+      playAndNewWord[0].newWords.log()
+
+
     }
   })
 }
