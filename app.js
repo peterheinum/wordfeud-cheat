@@ -88,14 +88,14 @@ const readDSSO = () => {
   })
 }
 
-analyzeBoard()
-
+loginAndGetGame()
 function loginAndGetGame() {
   api.login(email, pass, (err, result) => {
     if (err) return console.log(err);
     api.getGames(result.sessionId, (err, games) => {
       if (err) return console.log(err);
-      api.getGame(2639921453, result.sessionId, (err, res) => {
+
+      api.getGame(2620717251, result.sessionId, (err, res) => {
         if (res) {
           analyzeBoard(res)
         }
@@ -116,30 +116,33 @@ const fillBoard = () => {
   array.forEach(e => filledBoard.push(e))
 }
 
-async function analyzeBoard() {
-  let rack = ['I', 'R', 'Å', 'T', 'M', 'A', 'A']
-  const res = {
-    tiles: [[7, 7, 'M', false],
-    [5, 8, 'T', true],
-    [7, 8, 'O', false],
-    [4, 9, 'Å', false],
-    [5, 9, 'R', false],
-    [6, 9, 'O', false],
-    [7, 9, 'R', false],
-    [8, 9, 'N', false],
-    [9, 9, 'A', false],
-    [5, 10, 'Ä', false],
-    [7, 10, 'T', false],
-    [3, 11, 'R', false],
-    [4, 11, 'I', false],
-    [5, 11, 'D', false],
-    [7, 11, 'E', false],
-    [5, 12, 'S', false],
-    [7, 12, 'L', true]]
-  }
+async function analyzeBoard(res) {
+  // let rack = ['I', 'R', 'Å', 'T', 'M', 'A', 'A']
+  // const res = {
+  //   tiles: [
+  //   [7, 7, 'M', false],
+  //   [5, 8, 'T', true],
+  //   [7, 8, 'O', false],
+  //   [4, 9, 'Å', false],
+  //   [5, 9, 'R', false],
+  //   [6, 9, 'O', false],
+  //   [7, 9, 'R', false],
+  //   [8, 9, 'N', false],
+  //   [9, 9, 'A', false],
+  //   [5, 10, 'Ä', false],
+  //   [7, 10, 'T', false],
+  //   [3, 11, 'R', false],
+  //   [4, 11, 'I', false],
+  //   [5, 11, 'D', false],
+  //   [7, 11, 'E', false],
+  //   [5, 12, 'S', false],
+  //   [7, 12, 'L', true]
+  // ]}
 
   const list = await readDSSO();
-  // let rack = res.players.find(x => x.username == 'coolguy1996').rack;
+  let rack = res.players.find(x => x.username == 'coolguy1996').rack.filter(x => x);
+
+
 
   ~rack.indexOf('') && (rack[rack.indexOf('')] = '*'.toString().split(',').join(''))
 
@@ -225,14 +228,23 @@ async function analyzeBoard() {
 
   fillBoard()
   const positiveWords = success.unique().map(e => ({ word: e, points: ev(e) })).sort((a, b) => b.points - a.points)
-  // positiveWords.log()
-  const partsOfWordsOnBoard = positiveWords.map(x => x.word == 'RÅMAR' && whatPartIsOnBoard(x.word)).clean()
+  positiveWords.log()
+  // const partsOfWordsOnBoard = positiveWords.map(x => x.word == 'RÅMAR' && whatPartIsOnBoard(x.word)).clean()
+  const partsOfWordsOnBoard = positiveWords.map(x => whatPartIsOnBoard(x.word)).clean()
 
   const wordsWithDirections = partsOfWordsOnBoard.map(e => filterNonLiningSuggestions(e).clean())
 
+
+
+
   wordsWithDirections.forEach(e => {
-    // const x = canPlayX(e)
-    const y = canPlayY(e)
+    const alternativesX = canPlayX(e)
+    
+    const alternativesY = canPlayY(e)
+
+    console.log(alternativesX)
+    console.log(alternativesY)
+    
   })
 }
 
@@ -255,8 +267,6 @@ const readLine = (direction, z, newLetter) => {
     typeof (words[wordIndex]) == 'object' && !tile.isEmpty && words[wordIndex].push(tile)
   }
 
-  // Object.keys(words)
-  //   .map(e => words[e]).log()
   const newWord = Object.keys(words)
     .map(e => words[e])
     .find(e => e.some(o => o.x == newLetter.x && o.y == newLetter.y))
@@ -308,7 +318,7 @@ const canPlayY = (suggestions) => {
 
         const newWords = []
         const move = []
-        const badMove = () => move.splice(0, move.length) && newWords.splice(0, newWords.length)
+        const badMove = () => move.splice(0, move.length) && newWords.splice(0, newWords.length) && (i = 0)
 
         for (let y = StartY; y < StartY + word.length; y++) {
           const l = word[i]
@@ -328,20 +338,61 @@ const canPlayY = (suggestions) => {
 
           newWord && newWords.push(newWord)
           move.push({ y, x, l })
-
-          // console.log('collidesUp', collidesUp(x, y))
-          // console.log('collidesDown', collidesDown(x, y))
-          // console.log('collidesLeft', collidesLeft(x, y))
         }
         
         return { move, newWords }
       }).filter(e => e.move.length)
-
-      playAndNewWord[0].newWords.log()
-
-
+      return playAndNewWord
     }
   })
+  return possible.clean().flat()
+}
+
+const canPlayX = (suggestions) => {
+  const possible = suggestions.map(suggestion => {
+    const { tiles, word, inCommon, direction, linesUp } = suggestion
+    if (direction == 'y') {
+      const indexMatchers = word.getIndexes(inCommon[0])
+      const playAndNewWord = indexMatchers.map(index => {
+        const StartX = tiles[0].x - index
+        const y = tiles[0].y
+        let i = 0
+
+        const newWords = []
+        const move = []
+        const badMove = () => move.splice(0, move.length) && newWords.splice(0, newWords.length) && (i = 0)
+
+        for (let x = StartX; x < StartX + word.length; x++) {
+          const l = word[i]
+          i++
+          
+          if (x == 15) {
+            console.log('x got to 15 :[[')
+            badMove()
+            break
+          }
+
+          const newWord = x !== StartX && collidesUp(x, y) || collidesDown(x, y) ? readLine('y', y, { x, y, l }) : false
+          const crashX = x !== StartX && collidesRight(x, y) || collidesLeft(x, y) ? readLine('x', y, { x, y, l }) : false
+          if(crashX) {
+            console.log('right?:',collidesRight(x, y), x,y)
+            console.log('left?:',collidesLeft(x, y), x, y)
+            badMove()
+            break
+          }
+
+          newWord && newWords.push(newWord)
+          move.push({ y, x, l })
+        }
+
+        console.log(move)
+        console.log(newWords)
+        return { move, newWords }
+      }).filter(e => e.move.length)
+      return playAndNewWord
+    }
+  })
+  return possible.clean().flat()
 }
 
 const filterNonLiningSuggestions = (suggestions) => {
@@ -366,10 +417,9 @@ const filterNonLiningSuggestions = (suggestions) => {
 const checkIfMatchesLineUp = (tiles, inCommon) => {
   let j = tiles.indexOf(tiles.filter(e => e.l == inCommon[0]).last())
   let linesUp = true
-
   for (let i = 0; i < inCommon.length; i++) {
     if (linesUp == false) break
-    linesUp = tiles[j].l == inCommon[i]
+    linesUp =  tiles[j] && tiles[j].l == inCommon[i]
     j++
   }
 
