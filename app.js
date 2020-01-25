@@ -59,7 +59,7 @@ const removeEmptyArrays = (arr) => arr.filter(x => x.length)
 
 
 const readDSSO = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise(resolve => {
     fs.readFile('./dsso.txt', { encoding: 'utf16le' }, (err, res) => {
       const filters = [':!', '::', ': ',]
 
@@ -77,18 +77,34 @@ const readDSSO = () => {
       const [a, b, c, d, e] = allWords
       const arr = [...a, ...b, ...c, ...d, ...e]
 
-      const allt = arr.reduce((acc, cur) => {
+      const everything = arr.reduce((acc, cur) => {
         if (typeof (cur) == 'string' && cur.length > 1) acc.push(cur.toUpperCase())
         return acc
       }, [])
-      const uniq = allt.unique()
+      const uniq = everything.unique()
 
       resolve(uniq)
     })
   })
 }
 
-loginAndGetGame()
+const printBoard = () => {
+  for (let i = 0; i < 14; i++) {
+    let tiles = ''
+    for (let j = 0; j < 14; j++) {
+      const tile = filledBoard.find(e => e.x == i && e.y == j)
+      if(!tile.isEmpty) {
+        tiles = tiles + '  ' + tile.l
+      } 
+      else {
+        tiles = tiles + ' _ '
+      }
+    }
+  }
+}
+
+analyzeBoard()
+// loginAndGetGame()
 function loginAndGetGame() {
   api.login(email, pass, (err, result) => {
     if (err) return console.log(err);
@@ -116,31 +132,34 @@ const fillBoard = () => {
   array.forEach(e => filledBoard.push(e))
 }
 
-async function analyzeBoard(res) {
-  // let rack = ['I', 'R', 'Å', 'T', 'M', 'A', 'A']
-  // const res = {
-  //   tiles: [
-  //   [7, 7, 'M', false],
-  //   [5, 8, 'T', true],
-  //   [7, 8, 'O', false],
-  //   [4, 9, 'Å', false],
-  //   [5, 9, 'R', false],
-  //   [6, 9, 'O', false],
-  //   [7, 9, 'R', false],
-  //   [8, 9, 'N', false],
-  //   [9, 9, 'A', false],
-  //   [5, 10, 'Ä', false],
-  //   [7, 10, 'T', false],
-  //   [3, 11, 'R', false],
-  //   [4, 11, 'I', false],
-  //   [5, 11, 'D', false],
-  //   [7, 11, 'E', false],
-  //   [5, 12, 'S', false],
-  //   [7, 12, 'L', true]
-  // ]}
-
-  const list = await readDSSO();
-  let rack = res.players.find(x => x.username == 'coolguy1996').rack.filter(x => x);
+async function analyzeBoard() {
+  let rack = ['I', 'R', 'Å', 'T', 'M', 'A', 'A']
+  const res = {
+    tiles: [
+    [7, 7, 'M', false],
+    [5, 8, 'T', true],
+    [7, 8, 'O', false],
+    [4, 9, 'Å', false],
+    [5, 9, 'R', false],
+    [6, 9, 'O', false],
+    [7, 9, 'R', false],
+    [8, 9, 'N', false],
+    [9, 9, 'A', false],
+    [5, 10, 'Ä', false],
+    [7, 10, 'T', false],
+    [3, 11, 'R', false],
+    [4, 11, 'I', false],
+    [5, 11, 'D', false],
+    [7, 11, 'E', false],
+    [5, 12, 'S', false],
+    [7, 12, 'L', true]
+  ]}
+  console.log('reading')
+  console.log(process.memoryUsage())
+  const list = await readDSSO()
+  console.log(process.memoryUsage())
+  console.log('read complete')
+  // let rack = res.players.find(x => x.username == 'coolguy1996').rack.filter(x => x);
 
 
 
@@ -187,7 +206,6 @@ async function analyzeBoard(res) {
   // }
 
   const realCombos = combos.map(x => x == lookupObj[x] ? x : null).unique().clean()
-
   const tempWords = []
   board.forEach(e => e && tempWords.push(e.map(x => x.l)))
 
@@ -208,14 +226,14 @@ async function analyzeBoard(res) {
       if (lookupObj[e] == e) success.push(e.toUpperCase())
     }
   }
-
+  
   success = success.flat()
-
-
+  
+  
   const set = bigArray.unique()
   const arr = set.map(e => combinations(e)).flat()
-
-
+  
+  
   for (let i = 0; i < arr.length; i++) {
     const e = arr[i]
     const item = lookupObj[e] == e
@@ -223,10 +241,11 @@ async function analyzeBoard(res) {
       success.push(lookupObj[e].toUpperCase())
     }
   }
-
+  
   realCombos.forEach(e => success.push(e))
-
+  
   fillBoard()
+  printBoard()
   const positiveWords = success.unique().map(e => ({ word: e, points: ev(e) })).sort((a, b) => b.points - a.points)
   positiveWords.log()
   // const partsOfWordsOnBoard = positiveWords.map(x => x.word == 'RÅMAR' && whatPartIsOnBoard(x.word)).clean()
@@ -236,16 +255,15 @@ async function analyzeBoard(res) {
 
 
 
-
-  wordsWithDirections.forEach(e => {
-    const alternativesX = canPlayX(e)
+  // wordsWithDirections.forEach(e => {
+  //   const alternativesX = canPlayX(e)
     
-    const alternativesY = canPlayY(e)
+  //   const alternativesY = canPlayY(e)
 
-    console.log(alternativesX)
-    console.log(alternativesY)
+  //   console.log(alternativesX)
+  //   console.log(alternativesY)
     
-  })
+  // })
 }
 
 const readLine = (direction, z, newLetter) => {
