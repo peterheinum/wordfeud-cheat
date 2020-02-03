@@ -6,6 +6,8 @@ const email = process.env.EMAIL;
 const pass = process.env.PASSWORD;
 const tilemap = require('./tilemap.js')
 
+const line = () => console.log('_________________\n')
+
 
 const board = []
 const eraseBoard = () => board.splice(0, board.length)
@@ -40,7 +42,7 @@ Array.prototype.unique = function () {
   return [...new Set(this)]
 }
 
-Array.prototype.getIndexes = function (item, key) {
+Array.prototype.getIndex = function (item, key) {
   const indexes = []
   for (let i = 0; i < this.length; i++) {
     const equals = key ? item[key] == this[i] : item == this[i]
@@ -49,12 +51,13 @@ Array.prototype.getIndexes = function (item, key) {
   return indexes
 }
 
+console.log(tilemap)
 const convertBoardArrayToObj = boardStructure => boardStructure.map(([x, y, l, custom]) => ({ x, y, l, custom }))
-const unique = (arr) => [...new Set(arr)]
 
 //Evaluate(word) unique flatten combinations functions
 const ev = (word) => word && [...word].reduce((acc, cur) => acc + wp[cur], 0)
 const evL = (letter) => wp[letter]
+
 const removeEmptyArrays = (arr) => arr.filter(x => x.length)
 
 
@@ -92,14 +95,15 @@ const printBoard = () => {
   for (let i = 0; i < 14; i++) {
     let tiles = ''
     for (let j = 0; j < 14; j++) {
-      const tile = filledBoard.find(e => e.x == i && e.y == j)
-      if(!tile.isEmpty) {
+      const tile = filledBoard.find(e => e.y == i && e.x == j)
+      if (!tile.isEmpty) {
         tiles = tiles + '  ' + tile.l
-      } 
+      }
       else {
         tiles = tiles + ' _ '
       }
     }
+    console.log(tiles)
   }
 }
 
@@ -110,8 +114,7 @@ function loginAndGetGame() {
     if (err) return console.log(err);
     api.getGames(result.sessionId, (err, games) => {
       if (err) return console.log(err);
-
-      api.getGame(2620717251, result.sessionId, (err, res) => {
+      api.getGame(2728945603, result.sessionId, (err, res) => {
         if (res) {
           analyzeBoard(res)
         }
@@ -132,36 +135,36 @@ const fillBoard = () => {
   array.forEach(e => filledBoard.push(e))
 }
 
+const arrayToString = array => array.reduce((acc, cur) => acc += cur, '')
+
+const allWordsToStrings = allWords => allWords
+    .map(o => o.flat().map(o => o.l))
+    .reduce((acc, cur) => [...acc, arrayToString(cur)], [])
+
+
 async function analyzeBoard() {
-  let rack = ['I', 'R', 'Å', 'T', 'M', 'A', 'A']
+  let rack = ['D', 'I', 'R', 'B', 'Ä', 'U', 'E']
   const res = {
-    tiles: [
-    [7, 7, 'M', false],
-    [5, 8, 'T', true],
-    [7, 8, 'O', false],
-    [4, 9, 'Å', false],
-    [5, 9, 'R', false],
-    [6, 9, 'O', false],
-    [7, 9, 'R', false],
-    [8, 9, 'N', false],
-    [9, 9, 'A', false],
-    [5, 10, 'Ä', false],
-    [7, 10, 'T', false],
-    [3, 11, 'R', false],
-    [4, 11, 'I', false],
-    [5, 11, 'D', false],
-    [7, 11, 'E', false],
-    [5, 12, 'S', false],
-    [7, 12, 'L', true]
-  ]}
-  console.log('reading')
-  console.log(process.memoryUsage())
-  const list = await readDSSO()
-  console.log(process.memoryUsage())
-  console.log('read complete')
+    tiles:
+      [[12, 5, 'A', false],
+      [10, 6, 'P', false],
+      [12, 6, 'X', false],
+      [7, 7, 'K', false],
+      [8, 7, 'O', false],
+      [9, 7, 'K', false],
+      [10, 7, 'A', false],
+      [11, 7, 'D', false],
+      [12, 7, 'E', false],
+      [10, 8, 'R', false],
+      [12, 8, 'L', false],
+      [10, 9, 'E', false],
+      [10, 10, 'N', false]]
+  }
+
+
   // let rack = res.players.find(x => x.username == 'coolguy1996').rack.filter(x => x);
 
-
+  const list = await readDSSO()
 
   ~rack.indexOf('') && (rack[rack.indexOf('')] = '*'.toString().split(',').join(''))
 
@@ -182,6 +185,8 @@ async function analyzeBoard() {
   const allWords = readBoard(cordinates)
 
   allWords.forEach(e => board.push(e))
+
+
   const wordsOnBoard = allWordsToStrings(allWords)
 
   const lookupObj = list.reduce((acc, cur) => {
@@ -226,14 +231,14 @@ async function analyzeBoard() {
       if (lookupObj[e] == e) success.push(e.toUpperCase())
     }
   }
-  
+
   success = success.flat()
-  
-  
+
+
   const set = bigArray.unique()
   const arr = set.map(e => combinations(e)).flat()
-  
-  
+
+
   for (let i = 0; i < arr.length; i++) {
     const e = arr[i]
     const item = lookupObj[e] == e
@@ -241,30 +246,67 @@ async function analyzeBoard() {
       success.push(lookupObj[e].toUpperCase())
     }
   }
-  
+
   realCombos.forEach(e => success.push(e))
-  
+
   fillBoard()
   printBoard()
+
   const positiveWords = success.unique().map(e => ({ word: e, points: ev(e) })).sort((a, b) => b.points - a.points)
-  positiveWords.log()
-  // const partsOfWordsOnBoard = positiveWords.map(x => x.word == 'RÅMAR' && whatPartIsOnBoard(x.word)).clean()
-  const partsOfWordsOnBoard = positiveWords.map(x => whatPartIsOnBoard(x.word)).clean()
+
+  const partsOfWordsOnBoard = positiveWords.map(e => whatPartIsOnBoard(e.word)).clean()
 
   const wordsWithDirections = partsOfWordsOnBoard.map(e => filterNonLiningSuggestions(e).clean())
 
 
+  wordsWithDirections.forEach(e => {
+    const alternativesX = canPlayX(e)
 
-  // wordsWithDirections.forEach(e => {
-  //   const alternativesX = canPlayX(e)
-    
-  //   const alternativesY = canPlayY(e)
+    const alternativesY = canPlayY(e)
 
-  //   console.log(alternativesX)
-  //   console.log(alternativesY)
-    
-  // })
+    if (alternativesX.find(e => e.move)) {
+      calculateRealValue(alternativesX.find(e => e.move), 'alternativesX')
+    }
+
+    if (alternativesY.find(e => e.move)) {
+      calculateRealValue(alternativesY.find(e => e.move), 'alternativesY')
+    }
+
+
+  })
 }
+
+
+const calculateRealValue = (item, dirr) => {
+  const { move } = item
+  let goodideas = []
+  const translators = {
+    'TB': (letter) => letter * 3,
+    'DB': (letter) => letter * 2,
+    'TO': (word) => (ev(word) * 3),
+    'DO': (word) => (ev(word) * 2),
+  }
+  console.log(move, dirr)
+  const multipliers = getMultipliers(move)
+  console.log(multipliers)
+
+  return
+  const Do_To = multipliers.find(x => x == 'DO' || x == 'TO')
+  if (Do_To) {
+    const points = translators[Do_To](move)
+    goodideas.push({ word: move, points })
+  }
+  else {
+    let points = 0
+    move.forEach((l, i) => {
+      const multi = multipliers[i]
+      if (multi) points = points + translators[multi](evL(l.l))
+      else points = points + evL(l.l)
+    })
+    goodideas.push({ word: y, points })
+  }
+}
+
 
 const readLine = (direction, z, newLetter) => {
   //send in what Y or X in Z and a direction that is opposite of X or Y that you sent in in Z
@@ -323,33 +365,36 @@ function readBoard(daBoard) {
 }
 
 
-const canPlayY = (suggestions) => {
+const canPlayY = suggestions => {
+  console.log(suggestions.length)
   const possible = suggestions.map(suggestion => {
     const { tiles, word, inCommon, direction, linesUp } = suggestion
+    
     if (direction == 'x') {
-      const indexMatchers = word.getIndexes(inCommon[0])
-
-      const playAndNewWord = indexMatchers.map(index => {
-        const StartY = tiles[0].y - index
+      const playAndNewWord = inCommon.map(letter => {
+        const index = word.indexOf(letter)
+        const startY = tiles[0].y - index
         const x = tiles[0].x
         let i = 0
-
+        
+        
         const newWords = []
         const move = []
         const badMove = () => move.splice(0, move.length) && newWords.splice(0, newWords.length) && (i = 0)
 
-        for (let y = StartY; y < StartY + word.length; y++) {
+        for (let y = startY; y < startY + word.length; y++) {
           const l = word[i]
           i++
-          
+
           if (y == 15) {
+            console.log('badmove')
             badMove()
             break
           }
 
-          const newWord = y !== StartY && collidesRight(x, y) || collidesLeft(x, y) ? readLine('x', y, { x, y, l }) : false
-          const crashY = y !== StartY && collidesUp(x, y) || collidesDown(x, y) ? readLine('y', y, { x, y, l }) : false
-          if(crashY) {
+          const newWord = y !== startY && collidesRight(x, y) || collidesLeft(x, y) ? readLine('x', y, { x, y, l }) : false
+          const crashY = y !== startY && !inCommon.includes(l) && collidesUp(x, y) || collidesDown(x, y) ? readLine('y', y, { x, y, l }) : false
+          if (crashY) {
             badMove()
             break
           }
@@ -357,7 +402,6 @@ const canPlayY = (suggestions) => {
           newWord && newWords.push(newWord)
           move.push({ y, x, l })
         }
-        
         return { move, newWords }
       }).filter(e => e.move.length)
       return playAndNewWord
@@ -366,12 +410,12 @@ const canPlayY = (suggestions) => {
   return possible.clean().flat()
 }
 
-const canPlayX = (suggestions) => {
+const canPlayX = suggestions => {
   const possible = suggestions.map(suggestion => {
     const { tiles, word, inCommon, direction, linesUp } = suggestion
     if (direction == 'y') {
-      const indexMatchers = word.getIndexes(inCommon[0])
-      const playAndNewWord = indexMatchers.map(index => {
+      const playAndNewWord = inCommon.map(letter => {
+        const index = word.indexOf(letter)
         const StartX = tiles[0].x - index
         const y = tiles[0].y
         let i = 0
@@ -383,7 +427,7 @@ const canPlayX = (suggestions) => {
         for (let x = StartX; x < StartX + word.length; x++) {
           const l = word[i]
           i++
-          
+
           if (x == 15) {
             console.log('x got to 15 :[[')
             badMove()
@@ -391,10 +435,8 @@ const canPlayX = (suggestions) => {
           }
 
           const newWord = x !== StartX && collidesUp(x, y) || collidesDown(x, y) ? readLine('y', y, { x, y, l }) : false
-          const crashX = x !== StartX && collidesRight(x, y) || collidesLeft(x, y) ? readLine('x', y, { x, y, l }) : false
-          if(crashX) {
-            console.log('right?:',collidesRight(x, y), x,y)
-            console.log('left?:',collidesLeft(x, y), x, y)
+          const crashX = x !== StartX && !inCommon.includes(l) && collidesRight(x, y) || collidesLeft(x, y) ? readLine('x', y, { x, y, l }) : false
+          if (crashX) {            // console.log('left?:',collidesLeft(x, y), x, y)
             badMove()
             break
           }
@@ -403,8 +445,8 @@ const canPlayX = (suggestions) => {
           move.push({ y, x, l })
         }
 
-        console.log(move)
-        console.log(newWords)
+        // console.log(move)
+        // console.log(newWords)
         return { move, newWords }
       }).filter(e => e.move.length)
       return playAndNewWord
@@ -420,11 +462,7 @@ const filterNonLiningSuggestions = (suggestions) => {
 
     const direction = tileDirection(tiles)
     const linesUp = checkIfMatchesLineUp(tiles, inCommon)
-
-    if (inCommon.length > 1) {
-      return linesUp ? { tiles, word, inCommon, direction, linesUp } : false
-    }
-
+    
     return { tiles, word, inCommon, direction, linesUp }
   })
 }
@@ -437,7 +475,7 @@ const checkIfMatchesLineUp = (tiles, inCommon) => {
   let linesUp = true
   for (let i = 0; i < inCommon.length; i++) {
     if (linesUp == false) break
-    linesUp =  tiles[j] && tiles[j].l == inCommon[i]
+    linesUp = tiles[j] && tiles[j].l == inCommon[i]
     j++
   }
 
@@ -478,13 +516,9 @@ const collidesLeft = (x, y) => {
   return tile ? !tile.isEmpty : true
 }
 
-
-
-
-
 const whatPartIsOnBoard = ([...word]) => {
   const words = board.filter(x => !x.isEmpty).map(e => ({ word: e.map(x => x.l).arrToString(), tiles: e }))
-
+  
   const compare = (a, b) => a.filter(e => b.includes(e))
   const matches = []
   words.forEach(o => {
@@ -492,275 +526,24 @@ const whatPartIsOnBoard = ([...word]) => {
     const inCommon = compare(spread, word)
     inCommon.length > 0 && matches.push({ onBoard: o, word, inCommon })
   })
+  
 
   //this means we return only the matches that contain atleast one letter from board
   return matches.filter(e => [...e.word].find(o => hand.indexOf(o)))
 }
 
+const getMultipliers = word => word.reduce((acc, cur) => [...acc, tilemap[`${cur.x}:${cur.y}`]], [])
 
-
-
-const allWordsToStrings = (allWords) => {
-  const wordArray = allWords.map(o => o.flat().map(o => o.l))
-  return wordArray.reduce((acc, cur) => {
-    const string = cur.toString().split(',').join('')
-    acc.push(string)
-    return acc
-  }, [])
-}
-
-function isWordPlayable([...word], board, lettersOnBoard, wordsOnBoard, lookupObj, hand) {
-  lettersOnBoard.forEach(letter => {
-    const x = checkX(letter, word, board)
-    const y = checkY(letter, word, board)
-    if (x, y) {
-      const tempboard = board.concat(y)
-      const xWords = clean(getWordsFrom('y', tempboard));
-      const yWords = clean(getWordsFrom('x', tempboard));
-      const allWords = removeEmptyArrays(xWords.concat(yWords));
-      const yourWords = allWordsToStrings(allWords)
-      const newWords = yourWords.reduce((acc, cur) => {
-        const exists = !!wordsOnBoard.find(x => x == cur)
-        if (!exists) acc.push(cur)
-        return acc
-      }, [])
-      const allowedPlays = newWords.reduce((acc, cur) => {
-        !!lookupObj[cur] && acc.push(cur)
-        return acc
-      }, [])
-
-      if (allowedPlays.length && allowedPlays.length == newWords.length) {
-        let goodideas = []
-        const translators = {
-          'TB': (letter) => letter * 3,
-          'DB': (letter) => letter * 2,
-          'TO': (word) => (ev(word) * 3),
-          'DO': (word) => (ev(word) * 2),
-        }
-
-        if (y) {
-          const multipliers = getMultipliers(y)
-          const Do_To = multipliers.find(x => x == 'DO' || x == 'TO')
-          if (Do_To) {
-            const points = translators[Do_To](y)
-            goodideas.push({ word: y, points: points })
-          }
-          else {
-            let points = 0
-            y.forEach((l, i) => {
-              const multi = multipliers[i]
-              if (multi) points = points + translators[multi](evL(l.l))
-              else points = points + evL(l.l)
-            })
-            goodideas.push({ word: y, points: points })
-          }
-        }
-
-        if (x) {
-          const multipliers = getMultipliers(x)
-          const Do_To = multipliers.find(x => x == 'DO' || x == 'TO')
-          if (Do_To) {
-            const points = translators[Do_To](x)
-            goodideas.push({ word: x, points: points })
-          }
-          else {
-            let points = 0
-            x.forEach((l, i) => {
-              const multi = multipliers[i]
-              if (multi) points = points + translators[multi](evL(l.l))
-              else points = points + evL(l.l)
-            })
-
-            goodideas.push({ word: x, points: points })
-          }
-        }
-        const sorted = goodideas.sort((a, b) => (a.points - b.points))
-        sorted.forEach(e => {
-          console.log(e.points, e.word.map(x => x.l).toString().split(',').join(''))
-          console.log(allowedPlays)
-          console.log('____________')
-          console.log('\n')
-        })
-
-      }
-
-    }
-
-  })
-}
-
-const getMultipliers = (word) => word.reduce((acc, cur) => [...acc, tilemap[`${cur.x}:${cur.y}`]], [])
-
-
-
-const checkX = (letter, word, board) => {
-  const letterIndex = word.findIndex(o => o == letter.l)
-  const stepsBack = letterIndex;
-  let x = letter.x - letterIndex;
-  const y = letter.y;
-  const tileIntFrontOfX = board.filter(o => o.y == x).find(o => o.x == letter.x + 1)
-  if (tileIntFrontOfX) return false;
-  let clearTiles = []
-  let alreadyExisting = []
-  for (let i = 0; i < stepsBack; i++) {
-    clearTiles.push({ x: x, y: y, l: word[i] })
-    const match = board.find(o => o.x == x && o.x == y)
-    if (match) alreadyExisting.push(match)
-    x++;
-  }
-
-
-  return alreadyExisting.length ? false : clearTiles;
-}
-
-const checkY = (letter, word, board) => {
-  const letterIndex = word.findIndex(o => o == letter.l)
-  const stepsBack = letterIndex;
-  let y = letter.y - letterIndex;
-  const x = letter.x;
-  const tileIntFrontOfX = board.filter(o => o.x == x).find(o => o.y == letter.y + 1)
-  if (tileIntFrontOfX) return false;
-  let clearTiles = []
-  let alreadyExisting = []
-  for (let i = 0; i < stepsBack; i++) {
-    clearTiles.push({ x: x, y: y, l: word[i] })
-    const match = board.find(o => o.x == x && o.y == y)
-    if (match) alreadyExisting.push(match)
-    y++;
-  }
-
-  return alreadyExisting.length ? false : clearTiles;
-}
-
-
-
-
-function whatLetterIsOnBoard([...word], cordinates) {
-  let letter = null
-  word.forEach(e => {
-    const match = cordinates.reduce((acc, val) => {
-      if (val.l == e) acc.push(val)
-      return acc;
-    }, [])
-    if (match.length) {
-      letter = match
-    }
-  })
-  return letter ? letter : null;
-}
-
-
-
-
-
-
-function clean(arr, key) {
-  return arr.reduce((acc, val) => {
-    if (val) {
-      key ? acc.push(val[key]) : acc.push(val)
-    }
-    return acc
-  }, [])
-}
-
-
-function getWordsFrom(xy, cordinates) {
-  const yx = xy == 'y' ? 'x' : 'y'
-  cordinates = cordinates.sort((a, b) => a[yx] - b[yx])
-  const columns = unique(cordinates.map(o => o[xy])).sort((a, b) => a - b)
-
-  const wordsArray = []
-  columns.forEach(e => {
-    const lettersInColumn = cordinates.filter(o => o[xy] == e)
-    let index = lettersInColumn[0][yx]
-
-    //This loop will check for holes in the row and gather them
-    const startsInRow = lettersInColumn.reduce((acc, o) => {
-      if (o[yx] == index + 1) {
-        index = o[yx];
-        return acc;
-      } else {
-        index = o[yx];
-        acc.push(index)
-        return acc
-      }
-    }, [])
-
-
-    let arr = []
-
-    let lastY;
-    lettersInColumn.forEach(o => {
-      const isInLine = validateCordinate(startsInRow, o[yx], lastY)
-      if (isInLine == true) {
-        arr.push(o)
-        lastY = o[yx];
-      }
-      if (isInLine == false) {
-        console.log("nopenope big yikes")
-      }
-    });
-
-
-    startsInRow.forEach(e => {
-      const index = arr.indexOf(arr.find(x => x[yx] == e))
-      arr.splice(index, 0, 'space')
-    });
-
-    let arrayOfWords = []
-    let count = 0
-    arr.forEach(e => {
-      if (e == 'space') {
-        count++
-        arrayOfWords[count] = []
-      }
-      else if (e) arrayOfWords[count].push(e)
-    })
-
-
-    const finalArray = arrayOfWords.reduce((acc, val) => {
-      if (val.length > 1) {
-        acc.push(val)
-      }
-      return acc;
-    }, [])
-    wordsArray.push(finalArray)
-  });
-
-  return wordsArray;
-}
-
-
-function validateCordinate(startsArr, index, last) {
-  let bool = false;
-  startsArr.forEach(e => {
-    if (e == index) bool = true;
-    if (last + 1 == index) bool = true;
-  });
-
-  return bool;
-}
-
-
-
-
-
-
-function flatten(input) {
-  const stack = [...input];
-  const res = [];
+function flatten([...stack]) {
+  const res = []
   while (stack.length) {
-    // pop value from stack
-    const next = stack.pop();
-    if (Array.isArray(next)) {
-      // push back array items, won't modify the original input
-      stack.push(...next);
-    } else {
-      res.push(next);
-    }
+    const next = stack.pop()
+    Array.isArray(next) 
+      ? stack.push(...next)
+      : res.push(next) 
   }
-  //reverse to restore input order
-  return res.reverse();
+
+  return res.reverse()
 }
 
 function combinations(chars) {
