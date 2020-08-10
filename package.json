@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/api"
   },
   "keywords": [],
   "author": "peter",
@@ -11,6 +12,7 @@
   "dependencies": {
     "dawg-lookup": "^2.2.1",
     "dotenv": "^8.0.0",
+    "express": "^4.17.1",
     "fast-xml-parser": "^3.12.16",
     "fs": "0.0.1-security",
     "he": "^1.2.0",

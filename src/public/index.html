@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cheaters always win</title>
+</head>
+<body>
+  <br>
+  <input type="text" id="email">
+  <br>
+  <input type="text" id="pass">
+  <br>
+  <button id="login">Login</button>
+  <br>
+  <div id="container"></div>
+  <script>
+    const toJSON = res => res.json()
+    const state = {
+      games: [],
+      email: ''
+    }
+    
+    const set = (key, value) => state[key] = value
+    const get = key => state[key]
+
+    const qSelect = id => document.querySelector(`#${id}`)
+    const getTextField = id => qSelect(id).value
+
+    const getContainer = qSelect('container')
+
+    const hideField = id => qSelect(id).style.display = 'none'
+    
+    const appendGames = games => {
+      console.log(games)
+      set('games', games.filter(game => game.is_running))
+    } 
+
+    const chooseGame = id => fetch(`/game/${id}/${encodeURIComponent(get('email'))}`)
+
+    const createList = () => {
+      const games = get('games')
+      const containerDiv = qSelect('container')
+      games.forEach(game => {
+        console.log('ye')
+        const label = document.createElement('p')
+        const { username, fb_first_name, fb_last_name } = game.players.find(player => !player.is_local) 
+        const opponent = username.includes('_fb_') ? `${fb_first_name} ${fb_last_name}` : username
+        label.appendChild(document.createTextNode(opponent))
+        containerDiv.appendChild(label)
+        const btn = document.createElement('button')
+        btn.innerHTML = 'Cheat against'
+        btn.addEventListener('click', () => chooseGame(game.id))
+        containerDiv.appendChild(btn)
+      })
+    }
+
+    const hideLoginfields = () => {
+      hideField('pass')
+      hideField('email')
+      hideField('login')
+    }
+
+    const logInUser = () => {
+      const email = getTextField('email')
+      const pass = getTextField('pass')
+      set('email', email || 'wobzar@hotmail.se')
+      console.log(get('email'))
+
+      fetch('/login', {
+        method: 'POST', 
+        'Content-Type': 'application/json',
+        body: JSON.stringify({email, pass})
+      })
+        .then(toJSON)
+        .then(appendGames)
+        .then(hideLoginfields)
+        .then(createList)
+        .catch(alert)
+    }
+
+    document.querySelector('#login').addEventListener('click', logInUser)
+  </script>
+</body>
+</html>

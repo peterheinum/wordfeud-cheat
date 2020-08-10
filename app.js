@@ -8,7 +8,6 @@ const tilemap = require('./tilemap.js')
 
 const line = () => console.log('_________________\n')
 
-
 const board = []
 const eraseBoard = () => board.splice(0, board.length)
 
@@ -107,7 +106,7 @@ const printBoard = () => {
   }
 }
 
-analyzeBoard()
+// analyzeBoard()
 // loginAndGetGame()
 function loginAndGetGame() {
   api.login(email, pass, (err, result) => {
@@ -631,3 +630,4 @@ const alphabet = [
 
 
 
+module.exports = { readDSSO }
