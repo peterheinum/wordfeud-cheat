@@ -41,14 +41,14 @@ const getWordsFromBoard = board => {
   return Object.keys(words).map(e => words[e]).filter(x => x.length > 1)
 }
 
-const tileDirection = (tiles) => {
+const getDirectionForNewWord = (tiles) => {
   const startx = tiles[0].x
   const lastx = last(tiles).x
-  if (startx !== lastx) return 'x'
+  if (startx !== lastx) return 'y'
 
   const starty = tiles[0].y
   const lasty = last(tiles).y
-  if (starty !== lasty) return 'y'
+  if (starty !== lasty) return 'x'
 }
 
 const getValueOfWords = words => words.reduce((acc, word) => {
@@ -69,6 +69,19 @@ const uniqFlat = array => unique(flatten(array))
 
 const last = array => array[array.length - 1]
 
+const colors = {
+  WHITE: '\x1b[37m%s\x1b[0m',
+  YELLOW: '\x1b[33m%s\x1b[0m',
+  RED: '\x1b[31m%s\x1b[0m',
+  GREEN: '\x1b[32m%s\x1b[0m'
+}
+
+const createHashBoard = board => board.reduce((acc, { x, y, letter, filler }) => {
+  acc[`${x}.${y}`] = { letter, filler }
+  return acc
+}, {})
+
+
 module.exports = {
   last,
   unique, 
@@ -76,8 +89,10 @@ module.exports = {
   uniqFlat,
   arrToString,
   evaluateWord,
-  tileDirection,
   getValueOfWords,
+  createHashBoard,
   getBoardFromTiles,
   getWordsFromBoard,
+  getDirectionForNewWord,
+  ...colors,
 }
