@@ -21,6 +21,7 @@ const get = key => obj => typeof splitDot(key) == 'object'
   ? path(splitDot(key), obj) 
   : obj[key]
 
+  const nonTruthy = obj => !(typeof obj == 'object' && Object.keys(obj).length == 0) && Boolean(obj)
   
 const state = {}
   
@@ -38,6 +39,12 @@ const findIntersectionsForWord = wordsOnBoard => word => wordsOnBoard
         direction: getDirectionForNewWord(boardWord), 
         wordToCreate: word 
       }))
+
+const sortWithDirection = direction => (a, b) => 
+  direction === 'y' 
+  ? a.y - b.y
+  : a.x - b.x
+
 
 const createNewCoordinates = (wordToCreate, direction) => coordOfStart => {
   const indexOfIntersectionInWord = wordToCreate.indexOf(get('letter')(coordOfStart))
@@ -64,15 +71,31 @@ const createNewCoordinates = (wordToCreate, direction) => coordOfStart => {
     })
     temp--
   }
-  
-  return unique([...lettersForward, ...lettersBackWards])
+  const _sortWithDirection = sortWithDirection(direction)
+  return unique([...lettersForward, ...lettersBackWards]).sort(_sortWithDirection)
 }
 
 
 
 const getAllIntersections = ({ board, x, y, direction }) => {
-  direction === 'y' 
-  return []
+  const intersections = []
+  const pushTruthy = ({ x, y }) => board[`${x}:${y}`] && intersections.push(board[`${x}:${y}`])
+
+  if (direction === 'x') {
+    pushTruthy({ x: x-1, y })
+    pushTruthy({ x: x+1, y })
+  }
+  
+  if (direction === 'y') {
+    pushTruthy({ y: y-1, x })
+    pushTruthy({ y: y+1, x })
+  }
+  console.log({intersections})
+  return intersections
+}
+
+const validateIntersections = (intersections) => {
+
 }
 
 const investigateCoordinate = direction => ({ x, y, letter }) => {
@@ -81,15 +104,17 @@ const investigateCoordinate = direction => ({ x, y, letter }) => {
   const intersections = []
   if (!board[`${x}.${y}`] || board[`${x}.${y}`].letter === letter) {
     intersections.push(...getAllIntersections({ board, x, y, direction }))
+    if (intersections) {
+      validateIntersections(intersections)
+    }
     return { x, y, letter, intersections }
   }
-  
 }
 
 const removeInvalidMoves = direction => attemptCoordinates => {
   const mapper = investigateCoordinate(direction)
-  const validCoordinates = attemptCoordinates.map(mapper)
-  console.log(validCoordinates)
+  const validCoordinates = attemptCoordinates.map(mapper).filter(nonTruthy)
+  // console.log(validCoordinates)
   return validCoordinates
 }
 
@@ -129,14 +154,12 @@ const createSolution = game => {
 
   const wordsOnBoard = getWordsFromBoard(board)
 
-  // const wordsToCreateWithIntersection = wordsWithValue.map(findIntersectionsForWord(wordsOnBoard))
-  const wordsToCreateWithIntersection = [wordsWithValue[0]].map(findIntersectionsForWord(wordsOnBoard))
-  const validCoordinates = validateAllPaths(wordsToCreateWithIntersection[0])
-  
-  console.log(validCoordinates[0])
+  const wordsToCreateWithIntersection = wordsWithValue.map(findIntersectionsForWord(wordsOnBoard))
+  // const wordsToCreateWithIntersection = [wordsWithValue[0]].map(findIntersectionsForWord(wordsOnBoard))
+  // const validCoordinates = validateAllPaths(wordsToCreateWithIntersection[0])
+  const validCoordinates = wordsToCreateWithIntersection.map(validateAllPaths)
+  console.log(JSON.stringify(validCoordinates, null, 2))
 
-  // const validatePlays = validCoordinates.map()
-  // wordsToCreateWithIntersection.forEach(console.log)
 }
 
 

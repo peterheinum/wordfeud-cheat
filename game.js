@@ -90,7 +90,23 @@ module.exports = {
       7,
       "N",
       false
-    ]
+    ],
+    [
+      9, 
+      7,
+      "A",
+      false
+    ],
+    [ 9, 
+      8,
+      "T",
+      false
+    ],
+    [ 10, 
+      8,
+      "A",
+      false
+    ],
   ],
   "bag_count": 87,
   "pass_count": 0
